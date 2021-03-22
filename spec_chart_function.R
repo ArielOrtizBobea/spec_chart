@@ -1,5 +1,5 @@
 schart <- function(data, labels=NA, highlight=NA, n=1, index.est=1, index.se=2, index.ci=NA,
-                   order="asis", ci=.95, ylim=NA, axes=T, heights=c(1,1), leftmargin=11, offset=c(0,0), ylab="Coefficient", lwd.border=1,
+                   order="asis", ci=.95, ylim=NA, axes=T, heights=c(1,1), leftmargin=11, offset=c(0,0), ylab="Coefficient", lwd.border=1, horizontal=T,
                    lwd.est=4, pch.est=21, lwd.symbol=2, ref=0, lwd.ref=1, lty.ref=2, col.ref="black", band.ref=NA, col.band.ref=NA,length=0,
                    col.est=c("grey60", "red3"), col.est2=c("grey80","lightcoral"), bg.est=c("white", "white"),
                    col.dot=c("grey60","grey95","grey95","red3"),
@@ -7,9 +7,9 @@ schart <- function(data, labels=NA, highlight=NA, n=1, index.est=1, index.se=2, 
                    pch.dot=c(22,22,22,22), fonts=c(2,1), adj=c(1,1),cex=c(1,1)) {
 
   # Authors: Ariel Ortiz-Bobea (ao332@cornell.edu).
-  # Version: March 10, 2020
+  # Version: March 22, 2021
   # If you like this function and use it, please send me a note. It might motivate
-  # me to imporove it or write new ones to share.
+  # me improve it or write new ones and share them.
 
   # Description of arguments
 
@@ -29,10 +29,12 @@ schart <- function(data, labels=NA, highlight=NA, n=1, index.est=1, index.se=2, 
 
   # Figure layout:
   # heights: Ratio of top/bottom panel. Default is c(1,1) for 1 50/50 split
+  # (Note: ratio for left/right panel if horizontal=F)
   # leftmargin: amount of space on the left margin
   # offset: vector of numeric with offset for the group and specific labels
   # ylab: Label on the y-axis of top panel. Default is "Coefficient"
   # lwd.border: width of border and other lines
+  # horizontal:  should the plot be horizontal? (default is TRUE)
 
   # Line and symbol styles and colors:
   # lwd.est: numeric indicating the width of lines in the top panel
@@ -140,11 +142,17 @@ schart <- function(data, labels=NA, highlight=NA, n=1, index.est=1, index.se=2, 
   # 2. Plot
   if (T) {
     #par(mfrow=c(2,1), mar=c(0,leftmargin,0,0), oma=oma, xpd=F, family=family)
-    layout(t(t(2:1)), height=heights, widths=1)
-    par(mar=c(0,leftmargin,0,0), xpd=F)
+    if (horizontal) {
+      layout(t(t(2:1)), height=heights, widths=1)
+      par(mar=c(0,leftmargin,0,0), xpd=F)
+    } else  {
+      layout(t(1:2), height=1, widths=heights)
+      par(mar=c(leftmargin,0,0,0), xpd=F)
+    }
 
     # Bottom panel (plotted first)
-    plot(est, xlab="", ylab="", axes=F, type="n", ylim=c(h,1), xlim=xlim)
+    if (horizontal)  plot(1:nrow(tab), xlab="", ylab="", axes=F, type="n", ylim=c(h,1), xlim=xlim)
+    if (!horizontal) plot(1:nrow(tab), xlab="", ylab="", axes=F, type="n", ylim=xlim, xlim=c(1,h))
     lapply(1:nrow(tab), function(i) {
       # Get colors and point type
       type <- ifelse(is.na(tab[i,]),3,ifelse(tab[i,]==TRUE,1, ifelse(tab[i,]==FALSE,2,NA)))
@@ -154,14 +162,29 @@ schart <- function(data, labels=NA, highlight=NA, n=1, index.est=1, index.se=2, 
       pch <- as.numeric(pch.dot[type])
       sel <- is.na(pch)
       # Plot points
-      points(xs, rep(yloc[i],length(xs)), col=col, bg=bg, pch=pch, lwd=lwd.symbol)
-      points(xs[sel], rep(yloc[i],length(xs))[sel], col=col[sel], bg=bg[sel], pch=pch.dot[3]) # symbol for missing value
+      if (horizontal) {
+        points(xs, rep(yloc[i],length(xs)), col=col, bg=bg, pch=pch, lwd=lwd.symbol)
+        points(xs[sel], rep(yloc[i],length(xs))[sel], col=col[sel], bg=bg[sel], pch=pch.dot[3]) # symbol for missing value
+      } else {
+        points(rep((yloc)[i],length(xs)),xs, col=col, bg=bg, pch=pch, lwd=lwd.symbol)
+        points(rep((yloc)[i],length(xs))[sel],xs[sel], col=col[sel], bg=bg[sel], pch=pch.dot[3]) # symbol for missing value
+      }
 
     })
     par(xpd=T)
-    if (is.list(labels)) text(-offset[1], yloc2, labels=names(labels), adj=adj[1], font=fonts[1], cex=cex[2])
+    if (is.list(labels)) {
+      if (horizontal) {
+        text(-offset[1], yloc2, labels=names(labels), adj=adj[1], font=fonts[1], cex=cex[2])
+      } else {
+        text((yloc2), -offset[1], labels=names(labels), adj=adj[1], font=fonts[1], cex=cex[2], srt=90)
+      }
+    }
     # Does not accomodate subscripts
-    text(-rev(offset)[1], yloc , labels=unlist(labels), adj=rev(adj)[1], font=fonts[2], cex=cex[2])
+    if (horizontal) {
+      text(-rev(offset)[1], yloc , labels=unlist(labels), adj=rev(adj)[1], font=fonts[2], cex=cex[2])
+    } else {
+      text(yloc,-rev(offset)[1], labels=unlist(labels), adj=rev(adj)[1], font=fonts[2], cex=cex[2], srt=90)
+    }
     # Accomodates subscripts at the end of each string
     if (F) {
       labels1 <- unlist(labels)
@@ -179,23 +202,40 @@ schart <- function(data, labels=NA, highlight=NA, n=1, index.est=1, index.se=2, 
     colvec  <- ifelse(colnames(tab) %in% paste(highlight), col.est[2], col.est[1])
     bg.colvec  <- ifelse(colnames(tab) %in% paste(highlight), bg.est[2], bg.est[1])
     colvec2 <- ifelse(colnames(tab) %in% paste(highlight),col.est2[2], col.est2[1])
-    plot(est, xlab="", ylab="", axes=F, type="n", ylim=ylim, xlim=xlim)
+    if (horizontal)   plot(est, xlab="", ylab="", axes=F, type="n", ylim=ylim, xlim=xlim)
+    if (!horizontal)  plot(est, xlab="", ylab="", axes=F, type="n", ylim=xlim, xlim=ylim)
     # Band if present
     if (!is.na(band.ref[1])) {
-      rect(min(xlim)-diff(xlim)/10, band.ref[1], max(xlim)+diff(xlim)/10, band.ref[2], col=col.band.ref, border=NA)
+      if (horizontal) {
+        rect(xleft=min(xlim)-diff(xlim)/10, ybottom=band.ref[1], xright=max(xlim)+diff(xlim)/10, ytop=band.ref[2],
+             col=col.band.ref, border=NA)
+      } else {
+        rect(ybottom=min(xlim)-diff(xlim)/10, xleft=band.ref[1], ytop=max(xlim)+diff(xlim)/10, xright=band.ref[2],
+             col=col.band.ref, border=NA)
+      }
     }
     # Reference lines
-    abline(h=ref, lty=lty.ref, lwd=lwd.ref, col=col.ref)
+    if (horizontal) {
+      abline(h=ref, lty=lty.ref, lwd=lwd.ref, col=col.ref)
+    } else {
+      abline(v=ref, lty=lty.ref, lwd=lwd.ref, col=col.ref)
+    }
     # Vertical bars
-    if (length(ci)>1 | length(index.ci)>2) arrows(x0=xs, y0=l2, x1=xs, y1=h2, length=length, code=3, lwd=rev(lwd.est)[1], col=colvec2, angle=90)
-    arrows(x0=xs, y0=l1, x1=xs, y1=h1, length=length, code=3, lwd=lwd.est[1]     , col=colvec, angle=90)
-    points(xs, est, pch=pch.est, lwd=lwd.symbol, col=colvec, bg=bg.colvec)
+    if (horizontal) {
+      if (length(ci)>1 | length(index.ci)>2) arrows(x0=xs, y0=l2, x1=xs, y1=h2, length=length, code=3, lwd=rev(lwd.est)[1], col=colvec2, angle=90)
+      arrows(x0=xs, y0=l1, x1=xs, y1=h1, length=length, code=3, lwd=lwd.est[1]     , col=colvec, angle=90)
+      points(xs, est, pch=pch.est, lwd=lwd.symbol, col=colvec, bg=bg.colvec)
+    } else {
+      if (length(ci)>1 | length(index.ci)>2) arrows(y0=xs, x0=l2, y1=xs, x1=h2, length=length, code=3, lwd=rev(lwd.est)[1], col=colvec2, angle=90)
+      arrows(y0=xs, x0=l1, y1=xs, x1=h1, length=length, code=3, lwd=lwd.est[1]     , col=colvec, angle=90)
+      points(est,xs, pch=pch.est, lwd=lwd.symbol, col=colvec, bg=bg.colvec)
+    }
     # Axes
     if (axes) {
-      axis(2, las=2, cex.axis=cex[1], lwd=lwd.border)
-      axis(4, labels=NA, lwd=lwd.border)
+      axis(ifelse(horizontal,2,1), las=2, cex.axis=cex[1], lwd=lwd.border)
+      axis(ifelse(horizontal,4,3), labels=NA, lwd=lwd.border)
     }
-    mtext(ylab, side=2, line=3.5, cex=cex[1])
+    mtext(ylab, side=ifelse(horizontal,2,1), line=3.5, cex=cex[1])
     box(lwd=lwd.border)
 
   }

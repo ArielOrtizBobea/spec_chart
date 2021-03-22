@@ -1,7 +1,7 @@
 #===============================================================================
 # Description: Reproducible example to plot a specification chart
 # Author: Ariel Ortiz-Bobea (ao332@cornell.edu)
-# Version: March 10, 2020
+# Version: March 22, 2021
 # Note: if you have comments or suggestions on how to substantially improve this
 # function, feel to contact me. If you just want to say "thank you", that also
 # works. If you are too shy, then I can live with you just reading and citing
@@ -95,6 +95,9 @@
 
 # Add labels with groups
   schart(data, labels)
+
+# Make the chart horizontal
+  schart(data, labels, horizontal=F)
 
 # Labels can be aligned differently, but needs some additional work
   schart(data, labels, adj=c(0,0)) # falls on top of plot region
